@@ -1,3 +1,6 @@
 from django.contrib import admin
 
-# Register your models here.
+from api.models import Device, ExtraInfo
+
+admin.site.register(Device)
+admin.site.register(ExtraInfo)
