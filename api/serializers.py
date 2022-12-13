@@ -16,6 +16,12 @@ class DeviceSerializer(serializers.HyperlinkedModelSerializer):
         fields = ['name', 'desc', 'state', 'id']
 
 
+class DeviceMiniSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Device
+        fields = ['name', 'state']
+
+
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Group
