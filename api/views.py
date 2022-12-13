@@ -2,9 +2,9 @@ from django.contrib.auth.models import User, Group
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from api.models import Device
-from api.serializers import UserSerializer, GroupSerializer
-from api.serializers import DeviceSerializer, DeviceMiniSerializer
+from api.models import Device, SensorHistory, Sensor
+from api.serializers import UserSerializer, GroupSerializer, \
+    HistorySerializer, DeviceSerializer, DeviceMiniSerializer, SensorFullSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -17,9 +17,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows users to be viewed or edited.
-    """
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
     # permission_classes = [permissions.IsAuthenticated]
@@ -100,3 +97,15 @@ class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class SensorViewSet(viewsets.ModelViewSet):
+    queryset = Sensor.objects.all()
+    serializer_class = SensorFullSerializer
+
+
+class SensorHistoryViewSet(viewsets.ModelViewSet):
+    queryset = SensorHistory.objects.all()
+    serializer_class = HistorySerializer
+    # permission_classes = [permissions.IsAuthenticated]
+
