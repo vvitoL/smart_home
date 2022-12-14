@@ -57,3 +57,13 @@ class SensorHistory(models.Model):
 
     def __str__(self):
         return F"{self.sensor.name} - {self.temperature}*C - {self.created}"
+
+
+class Owner(models.Model):
+    name = models.CharField(max_length=32)
+    surname = models.CharField(max_length=32)
+    devices = models.ManyToManyField(Device)
+    sensors = models.ManyToManyField(Sensor)
+
+    def __str__(self):
+        return self.name or ''
