@@ -2,8 +2,8 @@ from django.contrib.auth.models import User, Group
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from api.models import Device, SensorHistory, Sensor
-from api.serializers import UserSerializer, GroupSerializer, \
+from api.models import Device, SensorHistory, Sensor, Owner
+from api.serializers import UserSerializer, GroupSerializer, OwnerSerializer, \
     HistorySerializer, DeviceSerializer, DeviceMiniSerializer, SensorFullSerializer
 
 
@@ -107,5 +107,11 @@ class SensorViewSet(viewsets.ModelViewSet):
 class SensorHistoryViewSet(viewsets.ModelViewSet):
     queryset = SensorHistory.objects.all()
     serializer_class = HistorySerializer
+    # permission_classes = [permissions.IsAuthenticated]
+
+
+class OwnerViewSet(viewsets.ModelViewSet):
+    queryset = Owner.objects.all()
+    serializer_class = OwnerSerializer
     # permission_classes = [permissions.IsAuthenticated]
 
