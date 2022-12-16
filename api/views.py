@@ -41,7 +41,8 @@ class DeviceViewSet(viewsets.ModelViewSet):
         device = Device.objects.create(
             name=request.data['name'],
             desc=request.data['desc'],
-            state=request.data['state']
+            state=request.data['state'],
+            amount_changes=request.data['amount_changes']
         )
         serializer = DeviceSerializer(device, many=False)
         return Response(serializer.data)
@@ -74,7 +75,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
         serializer = DeviceSerializer(device, many=False)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['POST'])
+    @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):
         devices = Device.objects.all()
         devices.update(state=False)
@@ -82,13 +83,14 @@ class DeviceViewSet(viewsets.ModelViewSet):
         serializer = DeviceSerializer(devices, many=False)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['POST'])
+    @action(detail=False, methods=['PUT'])
     def onall(self, request, **kwargs):
         devices = Device.objects.all()
         devices.update(state=True)
 
         serializer = DeviceSerializer(devices, many=False)
         return Response(serializer.data)
+
 
 class GroupViewSet(viewsets.ModelViewSet):
     """
@@ -107,7 +109,14 @@ class SensorViewSet(viewsets.ModelViewSet):
 class SensorHistoryViewSet(viewsets.ModelViewSet):
     queryset = SensorHistory.objects.all()
     serializer_class = HistorySerializer
-    # permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        history = SensorHistory.objects.create(
+            temperature=request.data['temperature'],
+            sensor_id=request.data['sensor_id'],
+        )
+        serializer = HistorySerializer(history, many=False)
+        return Response(serializer.data)
 
 
 class OwnerViewSet(viewsets.ModelViewSet):
