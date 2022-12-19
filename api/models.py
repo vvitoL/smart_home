@@ -1,24 +1,25 @@
-import datetime
-
-from django.utils import timezone
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class ExtraInfo(models.Model):
 
-    kinds = {
-        (0, "Unknown"),
-        (1, "Bulb"),
-        (2, "Relay"),
-        (3, "Gate"),
-        (4, "Blind")
-    }
+    class DeviceKinds(models.TextChoices):
+        UNKNOWN = "UN", _("Unknown")
+        BULB = "BU", _("Bulb")
+        RELAY = "RE", _("Relay")
+        GATE = "GA", _("Gate")
+        BLIND = "BL", _("Blind")
 
     consumption = models.IntegerField()
-    kind = models.IntegerField(choices=kinds, default=0)
+    device_kind = models.CharField(
+        max_length=2,
+        choices=DeviceKinds.choices,
+        default=DeviceKinds.UNKNOWN,
+    )
 
     def __str__(self):
-        return self.kind + self.consumption
+        return f"Kind: {self.device_kind} - Consumption: {self.consumption} [W]"
 
 
 class Device(models.Model):  # eq Film
@@ -26,7 +27,7 @@ class Device(models.Model):  # eq Film
     desc = models.TextField(max_length=256)
     state = models.BooleanField(default=False)
     last_mod = models.DateTimeField(null=True, blank=True)
-    created = models.DateField(default=timezone.now)
+    created = models.DateTimeField(auto_now_add=True)
     amount_changes = models.IntegerField()
 
     extra_info = models.OneToOneField(ExtraInfo, on_delete=models.CASCADE, null=True, blank=True)
@@ -34,6 +35,7 @@ class Device(models.Model):  # eq Film
     def __str__(self):
         return self.long_name
 
+    @property
     def long_name(self):
         return f"{self.name} - ({self.desc}) - ({self.created})"
 
@@ -53,10 +55,10 @@ class SensorHistory(models.Model):
     temperature = models.FloatField(blank=True,)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
-    sensor = models.ForeignKey(Sensor, on_delete=models.CASCADE, related_name='history')
+    sensor = models.ForeignKey(Sensor, on_delete=models.CASCADE, related_name='histories')
 
     def __str__(self):
-        return F"{self.sensor.name} - {self.temperature}*C - {self.created}"
+        return f"({self.temperature})*C - {self.sensor.name} - {self.created.date()} - {self.created.time()}"
 
 
 class Owner(models.Model):

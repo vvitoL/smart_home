@@ -13,7 +13,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 class ExtraInfoSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ExtraInfo
-        fields = ["consumption", 'kind']
+        fields = ["consumption", 'device_kind']
 
 
 class DeviceSerializer(serializers.HyperlinkedModelSerializer):
@@ -21,7 +21,8 @@ class DeviceSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Device
-        fields = ['name', 'desc', 'state', 'id', 'last_mod', 'created', 'amount_changes', 'long_name', "extra_info"]
+        fields = ['name', 'desc', 'state', 'id', 'last_mod', 'created', 'long_name', "extra_info"]
+        read_only_fields = ("extra_info",)
 
 
 class DeviceMiniSerializer(serializers.HyperlinkedModelSerializer):
@@ -29,7 +30,7 @@ class DeviceMiniSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Device
-        fields = ['name', 'state', "extra_info"]
+        fields = ['id', 'name', 'state', "extra_info"]
 
 
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
@@ -45,7 +46,7 @@ class SensorSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class HistorySerializer(serializers.HyperlinkedModelSerializer):
-    sensor = SensorSerializer(many=False)
+    sensor = SensorSerializer(many=False)  # read_only=True)
 
     class Meta:
         model = SensorHistory
@@ -59,11 +60,11 @@ class HistoryMiniSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class SensorFullSerializer(serializers.HyperlinkedModelSerializer):
-    history = HistoryMiniSerializer(many=True)
+    histories = HistoryMiniSerializer(many=True)
 
     class Meta:
         model = Sensor
-        fields = ['id', 'name', 'history']
+        fields = ['id', 'name', 'histories']
 
 
 class OwnerSerializer(serializers.HyperlinkedModelSerializer):
