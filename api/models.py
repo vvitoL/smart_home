@@ -29,6 +29,8 @@ class Device(models.Model):  # eq Film
     last_mod = models.DateTimeField(null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     amount_changes = models.IntegerField()
+    plc_register = models.IntegerField(null=True, blank=True)
+    modbus_register = models.IntegerField(null=True, blank=True)
 
     extra_info = models.OneToOneField(ExtraInfo, on_delete=models.CASCADE, null=True, blank=True)
 
