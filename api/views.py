@@ -78,11 +78,12 @@ class DeviceViewSet(viewsets.ModelViewSet):
         ex_coil = device.modbus_register
         c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
         pokoj = c.read_coils(ex_coil, 1)
-        c.write_single_coil(ex_coil, not pokoj[0])
+        if pokoj:
+            c.write_single_coil(ex_coil, not pokoj.pop())
 
         device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
         device.amount_changes += 1
-        device.state = not pokoj[0]
+        device.state = c.read_coils(ex_coil, 1).pop()
         device.save()
 
         serializer = DeviceSerializer(device, many=False)
