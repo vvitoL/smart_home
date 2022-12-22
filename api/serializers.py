@@ -21,7 +21,8 @@ class DeviceSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Device
-        fields = ['name', 'desc', 'state', 'id', 'last_mod', 'created', 'long_name', "extra_info"]
+        fields = ['name', 'desc', 'state', 'id', 'last_mod', 'created', 'long_name', "extra_info",
+                  'modbus_register', 'plc_register', 'amount_changes']
         read_only_fields = ("extra_info",)
 
 

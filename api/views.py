@@ -1,4 +1,7 @@
+import datetime
+
 from django.contrib.auth.models import User, Group
+from pyModbusTCP.client import ModbusClient
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -50,8 +53,13 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         device = self.get_object()
         device.name = request.data['name']
-        device.state = request.data['state']
         device.desc = request.data['desc']
+        if request.data.get('state', ''):
+            device.state = True
+        else:
+            device.state = False
+        device.modbus_register = request.data['modbus_register']
+        device.plc_register = request.data['plc_register']
         device.save()
 
         serializer = DeviceSerializer(device, many=False)
@@ -63,13 +71,19 @@ class DeviceViewSet(viewsets.ModelViewSet):
         # return Response(status=status.HTTP_204_NO_CONTENT)
         return Response("Device deleted")
 
-    @action(detail=True, methods=['PUT'])
+    @action(detail=True, methods=['GET'])
     def changestate(self, request, **kwargs):
         device = self.get_object()
-        if not device.state:
-            device.state = True
-        else:
-            device.state = False
+
+        ex_coil = device.modbus_register
+        c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+        pokoj = c.read_coils(ex_coil, 1)
+        if pokoj:
+            c.write_single_coil(ex_coil, not pokoj.pop())
+
+        device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
+        device.amount_changes += 1
+        device.state = c.read_coils(ex_coil, 1).pop()
         device.save()
 
         serializer = DeviceSerializer(device, many=False)
