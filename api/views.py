@@ -1,10 +1,13 @@
-from django.contrib.auth.models import User, Group
-from rest_framework import viewsets
-from rest_framework import permissions
+import datetime
 
-from api.models import Device
-from api.serializers import UserSerializer, GroupSerializer
-from api.serializers import DeviceSerializer
+from django.contrib.auth.models import User, Group
+from pyModbusTCP.client import ModbusClient
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from api.models import Device, SensorHistory, Sensor, Owner
+from api.serializers import UserSerializer, GroupSerializer, OwnerSerializer, \
+    HistorySerializer, DeviceSerializer, DeviceMiniSerializer, SensorFullSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -17,16 +20,91 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class DeviceViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows users to be viewed or edited.
-    """
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
     # permission_classes = [permissions.IsAuthenticated]
 
-    # def get_queryset(self):
-    #     dev_enabled = Device.objects.filter(state=False)
-    #     return dev_enabled
+    def get_queryset(self):
+        # dev_enabled = Device.objects.filter(state=False)
+        dev_enabled = Device.objects.all()
+        return dev_enabled
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+
+        serializer = DeviceMiniSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = DeviceSerializer(instance)
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        device = Device.objects.create(
+            name=request.data['name'],
+            desc=request.data['desc'],
+            state=request.data['state'],
+            amount_changes=request.data['amount_changes']
+        )
+        serializer = DeviceSerializer(device, many=False)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        device = self.get_object()
+        device.name = request.data['name']
+        device.desc = request.data['desc']
+        if request.data.get('state', ''):
+            device.state = True
+        else:
+            device.state = False
+        device.modbus_register = request.data['modbus_register']
+        device.plc_register = request.data['plc_register']
+        device.save()
+
+        serializer = DeviceSerializer(device, many=False)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        device = self.get_object()
+        device.delete()
+        # return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response("Device deleted")
+
+    @action(detail=True, methods=['GET'])
+    def changestate(self, request, **kwargs):
+        device = self.get_object()
+
+        ex_coil = device.modbus_register
+        c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+        pokoj = c.read_coils(ex_coil, 1)
+        if pokoj:
+            c.write_single_coil(ex_coil, not pokoj.pop())
+
+        device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
+        device.amount_changes += 1
+        device.state = c.read_coils(ex_coil, 1).pop()
+        device.save()
+
+        serializer = DeviceSerializer(device, many=False)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['PUT'])
+    def offall(self, request, **kwargs):
+        devices = Device.objects.all()
+        devices.update(state=False)
+
+        serializer = DeviceSerializer(devices, many=False)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['PUT'])
+    def onall(self, request, **kwargs):
+        devices = Device.objects.all()
+        devices.update(state=True)
+
+        serializer = DeviceSerializer(devices, many=False)
+        return Response(serializer.data)
+
 
 class GroupViewSet(viewsets.ModelViewSet):
     """
@@ -35,3 +113,28 @@ class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class SensorViewSet(viewsets.ModelViewSet):
+    queryset = Sensor.objects.all()
+    serializer_class = SensorFullSerializer
+
+
+class SensorHistoryViewSet(viewsets.ModelViewSet):
+    queryset = SensorHistory.objects.all()
+    serializer_class = HistorySerializer
+
+    def create(self, request, *args, **kwargs):
+        history = SensorHistory.objects.create(
+            temperature=request.data['temperature'],
+            sensor_id=request.data['sensor_id'],
+        )
+        serializer = HistorySerializer(history, many=False)
+        return Response(serializer.data)
+
+
+class OwnerViewSet(viewsets.ModelViewSet):
+    queryset = Owner.objects.all()
+    serializer_class = OwnerSerializer
+    # permission_classes = [permissions.IsAuthenticated]
+
