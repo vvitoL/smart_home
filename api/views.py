@@ -41,10 +41,14 @@ class DeviceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
+        if request.data.get('state', ''):
+            dev_state = True
+        else:
+            dev_state = False
         device = Device.objects.create(
             name=request.data['name'],
             desc=request.data['desc'],
-            state=request.data['state'],
+            state=dev_state,
             amount_changes=request.data['amount_changes']
         )
         serializer = DeviceSerializer(device, many=False)
