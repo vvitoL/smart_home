@@ -1,7 +1,7 @@
 import datetime
+import os
 
 from django.contrib.auth.models import User, Group
-from django.http import HttpResponse, HttpResponseNotFound
 from pyModbusTCP.client import ModbusClient
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
@@ -83,23 +83,28 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def changestate(self, request, **kwargs):
         device = self.get_object()
 
-        ex_coil = device.modbus_register
-        c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
-        pokoj = c.read_coils(ex_coil, 1)
-        print(pokoj)
-        if pokoj:
-            c.write_single_coil(ex_coil, not pokoj.pop())
+        if device.extra_info.device_kind == "BU":
+            ex_coil = device.modbus_register
+            c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+            modbus_device = c.read_coils(ex_coil, 1)
 
-            if (state := c.read_coils(ex_coil, 1)) is not None:
-                device.state = state.pop()
-                device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
-                device.amount_changes += 1
-                device.save()
+            if modbus_device:
+                c.write_single_coil(ex_coil, not modbus_device.pop())
 
-                serializer = DeviceSerializer(device, many=False)
-                return Response(serializer.data)
+                if (state := c.read_coils(ex_coil, 1)) is not None:
+                    device.state = state.pop()
+                    device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
+                    device.amount_changes += 1
+                    device.save()
 
-        return Response(data="PLC not connected. Check the network.", status=404)
+                    serializer = DeviceSerializer(device, many=False)
+                    return Response(serializer.data)
+
+            return Response(data="PLC not connected. Check the network.", status=404)
+        elif device.extra_info.device_kind == "TU":
+            ip_adress = os.getenv("IP_ADRESS")
+        return Response(data="Wrong Parameters", status=404)
+
 
     @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):
