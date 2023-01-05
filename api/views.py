@@ -1,6 +1,7 @@
 import datetime
 
 from django.contrib.auth.models import User, Group
+from django.http import HttpResponse, HttpResponseNotFound
 from pyModbusTCP.client import ModbusClient
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
@@ -25,9 +26,12 @@ class DeviceViewSet(viewsets.ModelViewSet):
     # permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # dev_enabled = Device.objects.filter(state=False)
-        dev_enabled = Device.objects.all()
-        return dev_enabled
+        kind = self.request.query_params.get('kind', None)
+        if kind:
+            devices = Device.objects.filter(extra_info__device_kind__iexact=kind)
+        else:
+            devices = Device.objects.all()
+        return devices
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -82,16 +86,20 @@ class DeviceViewSet(viewsets.ModelViewSet):
         ex_coil = device.modbus_register
         c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
         pokoj = c.read_coils(ex_coil, 1)
+        print(pokoj)
         if pokoj:
             c.write_single_coil(ex_coil, not pokoj.pop())
 
-        device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
-        device.amount_changes += 1
-        device.state = c.read_coils(ex_coil, 1).pop()
-        device.save()
+            if (state := c.read_coils(ex_coil, 1)) is not None:
+                device.state = state.pop()
+                device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
+                device.amount_changes += 1
+                device.save()
 
-        serializer = DeviceSerializer(device, many=False)
-        return Response(serializer.data)
+                serializer = DeviceSerializer(device, many=False)
+                return Response(serializer.data)
+
+        return Response(data="PLC not connected. Check the network.", status=404)
 
     @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):
