@@ -4,3 +4,5 @@
 /snapshot.json
 /tinytuya.json
 /tuya-raw.json
+/.env
+/db.sqlite3

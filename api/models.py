@@ -10,6 +10,7 @@ class ExtraInfo(models.Model):
         RELAY = "RE", _("Relay")
         GATE = "GA", _("Gate")
         BLIND = "BL", _("Blind")
+        TUYA = "TU", _("Tuya Device")
 
     consumption = models.IntegerField()
     device_kind = models.CharField(
