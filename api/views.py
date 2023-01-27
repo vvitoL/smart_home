@@ -1,8 +1,12 @@
 import datetime
+import os
 
+from smart_home import settings as st
+
+import tinytuya
 from django.contrib.auth.models import User, Group
 from pyModbusTCP.client import ModbusClient
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from api.models import Device, SensorHistory, Sensor, Owner
@@ -25,9 +29,12 @@ class DeviceViewSet(viewsets.ModelViewSet):
     # permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # dev_enabled = Device.objects.filter(state=False)
-        dev_enabled = Device.objects.all()
-        return dev_enabled
+        kind = self.request.query_params.get('kind', None)
+        if kind:
+            devices = Device.objects.filter(extra_info__device_kind__iexact=kind)
+        else:
+            devices = Device.objects.all()
+        return devices
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -79,19 +86,49 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def changestate(self, request, **kwargs):
         device = self.get_object()
 
-        ex_coil = device.modbus_register
-        c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
-        pokoj = c.read_coils(ex_coil, 1)
-        if pokoj:
-            c.write_single_coil(ex_coil, not pokoj.pop())
+        if device.extra_info.device_kind == "BU":
+            ex_coil = device.modbus_register
+            c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+            modbus_device = c.read_coils(ex_coil, 1)
 
-        device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
-        device.amount_changes += 1
-        device.state = c.read_coils(ex_coil, 1).pop()
-        device.save()
+            if modbus_device:
+                c.write_single_coil(ex_coil, not modbus_device.pop())
 
-        serializer = DeviceSerializer(device, many=False)
-        return Response(serializer.data)
+                if (state := c.read_coils(ex_coil, 1)) is not None:
+                    device.state = state.pop()
+                    device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
+                    device.amount_changes += 1
+                    device.save()
+
+                    serializer = DeviceSerializer(device, many=False)
+                    return Response(serializer.data)
+
+            return Response(data="PLC not connected. Check the network.", status=404)
+        elif device.extra_info.device_kind == "TU":
+            print(st.DEV_ID)
+            d = tinytuya.OutletDevice(dev_id='qweqwe', address='f.d.a.195', local_key='qweqwe', version=3.3)  # NOQA
+            data = d.status()
+            print('set_status() result %r' % data)
+
+            if data['dps']['20']:
+                d.turn_off(switch=20)
+            else:
+                d.turn_on(switch=20)
+                # d.set_value(value=999, index=22)
+
+            data = d.status()
+            print('set_status() result %r' % data)
+
+            device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
+            device.amount_changes += 1
+            device.save()
+
+            serializer = DeviceSerializer(device, many=False)
+            return Response(serializer.data)
+        else:
+            return Response(data="Device without extraInfo", status=404)
+
+        # return Response(data="Wrong Parameters", status=404)
 
     @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):
