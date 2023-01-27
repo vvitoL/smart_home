@@ -105,8 +105,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
             return Response(data="PLC not connected. Check the network.", status=404)
         elif device.extra_info.device_kind == "TU":
-            print(os.getenv("DEV_ID"))
-            print(os.getenv("LOCAL_KEY"))
             print(st.DEV_ID)
             d = tinytuya.OutletDevice(dev_id='qweqwe', address='f.d.a.195', local_key='qweqwe', version=3.3)  # NOQA
             data = d.status()

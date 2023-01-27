@@ -23,27 +23,17 @@ def modbus_read_loop():
 
         c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
 
-        print('-----------------------------------------')
-        print('-----------------------------------------')
         modbus_input_map = c.read_discrete_inputs(1025, 255)
         for pk, val in enumerate(modbus_input_map):
             if val:
                 print(pk)
-                # print(oct(pk)[2:])
         print(datetime.datetime.now())
         if modbus_input_map[138]:
-            # if bright == 10:
-            #     bright += 1
-            #     set_light_value(True, 20, bulb_01, bulb_02, bulb_03, bulb_04, bulb_05, bulb_06)
-            # else:
             bright += 99
             bright = check_limit(bright)
             print('lighter', bright)
             set_light_value(bright, 22, bulb_01, bulb_02, bulb_03, bulb_04, bulb_05, bulb_06)
         elif modbus_input_map[137]:
-            # if bright == 10:
-            #     set_light_value(False, 20, bulb_01, bulb_02, bulb_03, bulb_04, bulb_05, bulb_06)
-            # else:
             bright -= 99
             bright = check_limit(bright)
             print('darker', bright)
