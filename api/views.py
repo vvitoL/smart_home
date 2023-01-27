@@ -130,7 +130,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
         else:
             return Response(data="Device without extraInfo", status=404)
 
-        return Response(data="Wrong Parameters", status=404)
+        # return Response(data="Wrong Parameters", status=404)
 
     @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):

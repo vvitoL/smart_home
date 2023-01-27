@@ -58,7 +58,7 @@ def modbus_read_loop():
             temperature = check_limit(temperature)
             print('hotter', temperature)
             set_light_value(temperature, 23, bulb_01, bulb_02, bulb_03, bulb_04, bulb_05, bulb_06)
-        sleep(0.1)
+        sleep(0.05)
 
 
 def set_light_value(value, index, b1, b2, b3, b4, b5, b6):
