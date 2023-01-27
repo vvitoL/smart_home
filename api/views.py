@@ -1,10 +1,12 @@
 import datetime
 import os
 
+from smart_home import settings as st
+
 import tinytuya
 from django.contrib.auth.models import User, Group
 from pyModbusTCP.client import ModbusClient
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from api.models import Device, SensorHistory, Sensor, Owner
@@ -103,11 +105,8 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
             return Response(data="PLC not connected. Check the network.", status=404)
         elif device.extra_info.device_kind == "TU":
-            d = tinytuya.OutletDevice(
-                  dev_id=os.getenv("DEV_ID"),
-                  address=os.getenv("IP_ADDRESS"),
-                  local_key=os.getenv("LOCAL_KEY"),
-                  version=3.3)
+            print(st.DEV_ID)
+            d = tinytuya.OutletDevice(dev_id='qweqwe', address='f.d.a.195', local_key='qweqwe', version=3.3)  # NOQA
             data = d.status()
             print('set_status() result %r' % data)
 
@@ -126,8 +125,10 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
             serializer = DeviceSerializer(device, many=False)
             return Response(serializer.data)
+        else:
+            return Response(data="Device without extraInfo", status=404)
 
-        return Response(data="Wrong Parameters", status=404)
+        # return Response(data="Wrong Parameters", status=404)
 
     @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):
