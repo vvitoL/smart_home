@@ -1,12 +1,11 @@
-
 from django.urls import include, path
 from rest_framework import routers
+from dotenv import load_dotenv
 
 from api import views
 from tasks import modbus_read_loop
 
-# add.delay(4, 4)
-
+load_dotenv()
 modbus_read_loop.delay()
 
 router = routers.DefaultRouter()
@@ -17,8 +16,7 @@ router.register("sensors", views.SensorViewSet)
 router.register("history", views.SensorHistoryViewSet)
 router.register("owners", views.OwnerViewSet)
 
-
-print('test')
+# print('test')
 urlpatterns = [
     path('', include(router.urls)),
 ]

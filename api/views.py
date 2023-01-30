@@ -1,11 +1,9 @@
 import datetime
 import os
 
-from smart_home import settings as st
-
 import tinytuya
-from django.contrib.auth.models import User, Group
 from pyModbusTCP.client import ModbusClient
+from django.contrib.auth.models import User, Group
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -88,7 +86,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
         if device.extra_info.device_kind == "BU":
             ex_coil = device.modbus_register
-            c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+            c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
             modbus_device = c.read_coils(ex_coil, 1)
 
             if modbus_device:
@@ -105,8 +103,12 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
             return Response(data="PLC not connected. Check the network.", status=404)
         elif device.extra_info.device_kind == "TU":
-            print(st.DEV_ID)
-            d = tinytuya.OutletDevice(dev_id='qweqwe', address='f.d.a.195', local_key='qweqwe', version=3.3)  # NOQA
+            d = tinytuya.OutletDevice(
+                  dev_id=os.getenv("DEV_ID"),
+                  address=os.getenv("IP_ADDRESS"),
+                  local_key=os.getenv("LOCAL_KEY"),
+                  version=3.3
+            )
             data = d.status()
             print('set_status() result %r' % data)
 
@@ -116,9 +118,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 d.turn_on(switch=20)
                 # d.set_value(value=999, index=22)
 
-            data = d.status()
-            print('set_status() result %r' % data)
-
             device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
             device.amount_changes += 1
             device.save()
@@ -127,8 +126,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         else:
             return Response(data="Device without extraInfo", status=404)
-
-        # return Response(data="Wrong Parameters", status=404)
 
     @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):
