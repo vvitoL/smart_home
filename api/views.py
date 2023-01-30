@@ -103,7 +103,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
             return Response(data="PLC not connected. Check the network.", status=404)
         elif device.extra_info.device_kind == "TU":
-            print(os.getenv("PLC_IP"))
             d = tinytuya.OutletDevice(
                   dev_id=os.getenv("DEV_ID"),
                   address=os.getenv("IP_ADDRESS"),
@@ -119,9 +118,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 d.turn_on(switch=20)
                 # d.set_value(value=999, index=22)
 
-            # data = d.status()
-            # print('set_status() result %r' % data)
-
             device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
             device.amount_changes += 1
             device.save()
@@ -130,8 +126,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         else:
             return Response(data="Device without extraInfo", status=404)
-
-        return Response(data="Wrong Parameters", status=404)
 
     @action(detail=False, methods=['PUT'])
     def offall(self, request, **kwargs):
