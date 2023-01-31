@@ -77,7 +77,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         device = self.get_object()
         device.delete()
-        # return Response(status=status.HTTP_204_NO_CONTENT)
         return Response("Device deleted")
 
     @action(detail=True, methods=['GET'])

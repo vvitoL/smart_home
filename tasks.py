@@ -51,15 +51,17 @@ def modbus_read_loop():
                 temperature = check_limit(temperature)
                 print('hotter', temperature)
                 set_light_value(temperature, 23, bulb_01, bulb_02, bulb_03, bulb_04, bulb_05, bulb_06)
-            sleep(0.05)
+            else:
+                sleep(0.1)
         except TypeError:
             print("PLC disconnected")
-            sleep(0.3)
+            sleep(0.5)
 
         print(datetime.datetime.now())
 
 
 def set_light_value(value, index, b1, b2, b3, b4, b5, b6):
+    sleep(0.02)
     b1.set_value(value=value, index=index)
     b2.set_value(value=value, index=index)
     b3.set_value(value=value, index=index)
