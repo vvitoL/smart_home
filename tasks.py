@@ -14,23 +14,37 @@ app = Celery('tasks', backend='rpc://', broker='pyamqp://guest@localhost//')
 
 @app.task
 def modbus_read_loop():
-    bulb_01 = tinytuya.OutletDevice(dev_id=os.getenv("B1_ID"), address=os.getenv("B1_IP"), local_key=os.getenv("B1_KEY"), version=3.3)  # NOQA
-    bulb_02 = tinytuya.OutletDevice(dev_id=os.getenv("B2_ID"), address=os.getenv("B2_IP"), local_key=os.getenv("B2_KEY"), version=3.3)  # NOQA
-    bulb_03 = tinytuya.OutletDevice(dev_id=os.getenv("B3_ID"), address=os.getenv("B3_IP"), local_key=os.getenv("B3_KEY"), version=3.3)  # NOQA
-    bulb_04 = tinytuya.OutletDevice(dev_id=os.getenv("B4_ID"), address=os.getenv("B4_IP"), local_key=os.getenv("B4_KEY"), version=3.3)  # NOQA
-    bulb_05 = tinytuya.OutletDevice(dev_id=os.getenv("B5_ID"), address=os.getenv("B5_IP"), local_key=os.getenv("B5_KEY"), version=3.3)  # NOQA
-    bulb_06 = tinytuya.OutletDevice(dev_id=os.getenv("B6_ID"), address=os.getenv("B6_IP"), local_key=os.getenv("B6_KEY"), version=3.3)  # NOQA
+    bulb_01 = tinytuya.OutletDevice(dev_id=os.getenv("B1_ID"), address=os.getenv("B1_IP"),
+                                    local_key=os.getenv("B1_KEY"), version=3.3)  # NOQA
+    bulb_02 = tinytuya.OutletDevice(dev_id=os.getenv("B2_ID"), address=os.getenv("B2_IP"),
+                                    local_key=os.getenv("B2_KEY"), version=3.3)  # NOQA
+    bulb_03 = tinytuya.OutletDevice(dev_id=os.getenv("B3_ID"), address=os.getenv("B3_IP"),
+                                    local_key=os.getenv("B3_KEY"), version=3.3)  # NOQA
+    bulb_04 = tinytuya.OutletDevice(dev_id=os.getenv("B4_ID"), address=os.getenv("B4_IP"),
+                                    local_key=os.getenv("B4_KEY"), version=3.3)  # NOQA
+    bulb_05 = tinytuya.OutletDevice(dev_id=os.getenv("B5_ID"), address=os.getenv("B5_IP"),
+                                    local_key=os.getenv("B5_KEY"), version=3.3)  # NOQA
+    bulb_06 = tinytuya.OutletDevice(dev_id=os.getenv("B6_ID"), address=os.getenv("B6_IP"),
+                                    local_key=os.getenv("B6_KEY"), version=3.3)  # NOQA
     bright = 10
     temperature = 0
+    last_loop_sec = 0
+
     while True:
 
         try:
             c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
             modbus_input_map = c.read_discrete_inputs(1025, 255)
+            outputs = []
             for pk, val in enumerate(modbus_input_map):
                 if val:
-                    print(pk)
-
+                    #                     print(pk)
+                    #                     print(datetime.datetime.now())
+                    outputs.append(pk)
+            if datetime.datetime.now().second != last_loop_sec:
+                last_loop_sec = datetime.datetime.now().second
+                outputs.append(datetime.datetime.now())
+                print(outputs)
             if modbus_input_map[138]:
                 bright += 99
                 bright = check_limit(bright)
@@ -57,8 +71,6 @@ def modbus_read_loop():
             print("PLC disconnected")
             sleep(0.5)
 
-        print(datetime.datetime.now())
-
 
 def set_light_value(value, index, b1, b2, b3, b4, b5, b6):
     sleep(0.02)
@@ -76,3 +88,4 @@ def check_limit(value):
     if value < 10:
         value = 10
     return value
+
