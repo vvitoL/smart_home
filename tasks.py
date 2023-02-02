@@ -145,3 +145,21 @@ def read_1wire_sensors():
             amount += 1
             print(amount, 'sensor error')
             sleep(0.2)
+
+
+@app.task
+def read_bt_xiaomi():
+    from lywsd03mmc import Lywsd03mmcClient
+
+    client = Lywsd03mmcClient("A4:C1:38:8B:12:55")
+
+    data = client.data
+    print('Gabinet: ', "A4:C1:38:8B:12:55", '- Battery: ', str(data.battery))
+    print('Temperature: ', str(data.temperature), '- Humidity: ', str(data.humidity))
+    print('   ')
+
+    client = Lywsd03mmcClient("A4:C1:38:2E:47:5A")
+
+    data = client.data
+    print('Antresola: ', "A4:C1:38:2E:47:5A", '- Battery: ', str(data.battery))
+    print('Temperature: ', str(data.temperature), '- Humidity: ', str(data.humidity))
