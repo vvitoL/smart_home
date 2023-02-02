@@ -3,6 +3,7 @@ from time import sleep
 from datetime import datetime
 import tinytuya
 from pyModbusTCP.client import ModbusClient
+from w1thermsensor import W1ThermSensor
 
 from celery import Celery
 from dotenv import load_dotenv
@@ -124,3 +125,23 @@ def modbus_xy_read():
     #     except:
     #         print("error")
     #         sleep(1)
+
+
+@app.task
+def read_1wire_sensors():
+    amount = 0
+    tries = 0
+    while True:
+        list = []
+        tries += 1
+        try:
+            for sensor in W1ThermSensor.get_available_sensors():
+                list.append(sensor.id)
+                list.append("Actual temp: ")
+                list.append(round(sensor.get_temperature(), 1))
+            print(list, f'No of Errors: {amount}', f'No of tries: {tries}')
+            sleep(1)
+        except:
+            amount += 1
+            print(amount, 'sensor error')
+            sleep(0.2)
