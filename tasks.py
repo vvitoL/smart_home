@@ -1,7 +1,6 @@
 import os
 from time import sleep
-import datetime
-
+from datetime import datetime
 import tinytuya
 from pyModbusTCP.client import ModbusClient
 
@@ -41,9 +40,9 @@ def modbus_read_loop():
                     #                     print(pk)
                     #                     print(datetime.datetime.now())
                     outputs.append(pk)
-            if datetime.datetime.now().second != last_loop_sec:
-                last_loop_sec = datetime.datetime.now().second
-                outputs.append(datetime.datetime.now())
+            if datetime.now().second != last_loop_sec:
+                last_loop_sec = datetime.now().second
+                outputs.append(datetime.now())
                 print(outputs)
             if modbus_input_map[138]:
                 bright += 99
@@ -89,3 +88,39 @@ def check_limit(value):
         value = 10
     return value
 
+
+@app.task
+def modbus_xy_read():
+    start = datetime.timestamp(datetime.now())
+    i = 0
+    trigY = False
+    while True:
+
+        #     try:
+        c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+        modbus_input_map = c.read_discrete_inputs(1024, 255)
+        modbus_output_map = c.read_discrete_inputs(1280, 16)
+
+        if not trigY and modbus_output_map[3]:
+            print("trig on")
+            trigY = True
+        if trigY and not modbus_output_map[3]:
+            print("trig off")
+            trigY = False
+
+        outputs = []
+        trig = False
+        for pk, val in enumerate(modbus_input_map):
+            if val and pk == 72:
+                i += 1
+                if i == 2:
+                    print(pk, f"TIMER: {round(datetime.timestamp(datetime.now()) - start, 3)}")
+                sleep(0.3)
+                if i >= 3:
+                    end = datetime.timestamp(datetime.now()) - start
+                    print(pk, f"TIMER: {round(end, 3)}", f"Actual comsumption: {3600.0 / end}")
+                    start = datetime.timestamp(datetime.now())
+                    i = 1
+    #     except:
+    #         print("error")
+    #         sleep(1)
