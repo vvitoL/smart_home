@@ -94,23 +94,21 @@ def check_limit(value):
 def modbus_xy_read():
     start = datetime.timestamp(datetime.now())
     i = 0
-    trigY = False
+    trig_y = False
     while True:
 
         #     try:
-        c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+        c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
         modbus_input_map = c.read_discrete_inputs(1024, 255)
         modbus_output_map = c.read_discrete_inputs(1280, 16)
 
-        if not trigY and modbus_output_map[3]:
+        if not trig_y and modbus_output_map[3]:
             print("trig on")
-            trigY = True
-        if trigY and not modbus_output_map[3]:
+            trig_y = True
+        if trig_y and not modbus_output_map[3]:
             print("trig off")
-            trigY = False
+            trig_y = False
 
-        outputs = []
-        trig = False
         for pk, val in enumerate(modbus_input_map):
             if val and pk == 72:
                 i += 1
@@ -119,7 +117,7 @@ def modbus_xy_read():
                 sleep(0.3)
                 if i >= 3:
                     end = datetime.timestamp(datetime.now()) - start
-                    print(pk, f"TIMER: {round(end, 3)}", f"Actual comsumption: {3600.0 / end}")
+                    print(pk, f"TIMER: {round(end, 3)}", f"Actual consumption: {3600.0 / end}")
                     start = datetime.timestamp(datetime.now())
                     i = 1
     #     except:
