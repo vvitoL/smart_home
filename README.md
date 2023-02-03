@@ -45,3 +45,8 @@ Installing Packages:
  - import `.env` file to project and run django server
  
    `python manage.py runserver 0:8000`
+
+ - 
+
+    `celery -A tasks worker --loglevel=INFO
+`
