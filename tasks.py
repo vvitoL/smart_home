@@ -38,12 +38,9 @@ def modbus_read_loop():
             outputs = []
             for pk, val in enumerate(modbus_input_map):
                 if val:
-                    #                     print(pk)
-                    #                     print(datetime.datetime.now())
                     outputs.append(pk)
             if datetime.now().second != last_loop_sec:
                 last_loop_sec = datetime.now().second
-                outputs.append(datetime.now())
                 print(outputs)
             if modbus_input_map[138]:
                 bright += 99
