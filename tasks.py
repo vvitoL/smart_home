@@ -98,32 +98,32 @@ def modbus_xy_read():
     trig_y = False
     while True:
 
-        #     try:
-        c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
-        modbus_input_map = c.read_discrete_inputs(1024, 255)
-        modbus_output_map = c.read_discrete_inputs(1280, 16)
+        try:
+            c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
+            modbus_input_map = c.read_discrete_inputs(1024, 255)
+            modbus_output_map = c.read_discrete_inputs(1280, 16)
 
-        if not trig_y and modbus_output_map[3]:
-            print("trig on")
-            trig_y = True
-        if trig_y and not modbus_output_map[3]:
-            print("trig off")
-            trig_y = False
+            if not trig_y and modbus_output_map[3]:
+                print("trig on")
+                trig_y = True
+            if trig_y and not modbus_output_map[3]:
+                print("trig off")
+                trig_y = False
 
-        for pk, val in enumerate(modbus_input_map):
-            if val and pk == 72:
-                i += 1
-                if i == 2:
-                    print(pk, f"TIMER: {round(datetime.timestamp(datetime.now()) - start, 3)}")
-                sleep(0.3)
-                if i >= 3:
-                    end = datetime.timestamp(datetime.now()) - start
-                    print(pk, f"TIMER: {round(end, 3)}", f"Actual consumption: {3600.0 / end}")
-                    start = datetime.timestamp(datetime.now())
-                    i = 1
-    #     except:
-    #         print("error")
-    #         sleep(1)
+            for pk, val in enumerate(modbus_input_map):
+                if val and pk == 72:
+                    i += 1
+                    if i == 2:
+                        print(pk, f"TIMER: {round(datetime.timestamp(datetime.now()) - start, 3)}")
+                    sleep(0.3)
+                    if i >= 3:
+                        end = datetime.timestamp(datetime.now()) - start
+                        print(pk, f"TIMER: {round(end, 3)}", f"Actual consumption: {3600.0 / end}")
+                        start = datetime.timestamp(datetime.now())
+                        i = 1
+        except:
+            print("error")
+            sleep(1)
 
 
 @app.task
@@ -184,7 +184,7 @@ def read_plc_production():
                         end = datetime.timestamp(datetime.now()) - start
                         print(
                             pk, f"TIMER: {round(end, 3)}",
-                            f"Actual comsumption: {round(3600.0 / end / 0.4, 3)}",
+                            f"Actual consumption: {round(3600.0 / end / 0.4, 3)}",
                             f" Total consumed: {round(total, 3)}"
                         )
                         start = datetime.timestamp(datetime.now())
