@@ -158,3 +158,30 @@ def read_bt_xiaomi():
     data = client.data
     print('Antresola: ', "A4:C1:38:2E:47:5A", '- Battery: ', str(data.battery))
     print('Temperature: ', str(data.temperature), '- Humidity: ', str(data.humidity))
+
+
+@app.task
+def read_plc_production():
+    start = datetime.timestamp(datetime.now())
+    i = 0
+    total = 0.234
+    while True:
+
+        try:
+            c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+            modbus_input_map = c.read_discrete_inputs(1024, 255)
+
+            for pk, val in enumerate(modbus_input_map):
+                if val and pk == 78:
+                    i += 1
+                    sleep(0.3)
+                    if i >= 2:
+                        total += 0.0025
+                        end = datetime.timestamp(datetime.now()) - start
+                        print(pk, f"TIMER: {round(end, 3)}",
+                              f"Actual comsumption: {round(3600.0 / end / 0.4, 3)} Total consumed: {round(total, 3)}")  # NOQA
+                        start = datetime.timestamp(datetime.now())
+                        i = 1
+        except:
+            print("error")
+            sleep(1)
