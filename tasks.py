@@ -4,9 +4,13 @@ from datetime import datetime
 import tinytuya
 from pyModbusTCP.client import ModbusClient
 from w1thermsensor import W1ThermSensor
+import requests
+from requests.auth import HTTPBasicAuth
+from bs4 import BeautifulSoup
 
 from celery import Celery
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 app = Celery('tasks', backend='rpc://', broker='pyamqp://guest@localhost//')
@@ -94,32 +98,32 @@ def modbus_xy_read():
     trig_y = False
     while True:
 
-        #     try:
-        c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
-        modbus_input_map = c.read_discrete_inputs(1024, 255)
-        modbus_output_map = c.read_discrete_inputs(1280, 16)
+        try:
+            c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
+            modbus_input_map = c.read_discrete_inputs(1024, 255)
+            modbus_output_map = c.read_discrete_inputs(1280, 16)
 
-        if not trig_y and modbus_output_map[3]:
-            print("trig on")
-            trig_y = True
-        if trig_y and not modbus_output_map[3]:
-            print("trig off")
-            trig_y = False
+            if not trig_y and modbus_output_map[3]:
+                print("trig on")
+                trig_y = True
+            if trig_y and not modbus_output_map[3]:
+                print("trig off")
+                trig_y = False
 
-        for pk, val in enumerate(modbus_input_map):
-            if val and pk == 72:
-                i += 1
-                if i == 2:
-                    print(pk, f"TIMER: {round(datetime.timestamp(datetime.now()) - start, 3)}")
-                sleep(0.3)
-                if i >= 3:
-                    end = datetime.timestamp(datetime.now()) - start
-                    print(pk, f"TIMER: {round(end, 3)}", f"Actual consumption: {3600.0 / end}")
-                    start = datetime.timestamp(datetime.now())
-                    i = 1
-    #     except:
-    #         print("error")
-    #         sleep(1)
+            for pk, val in enumerate(modbus_input_map):
+                if val and pk == 72:
+                    i += 1
+                    if i == 2:
+                        print(pk, f"TIMER: {round(datetime.timestamp(datetime.now()) - start, 3)}")
+                    sleep(0.3)
+                    if i >= 3:
+                        end = datetime.timestamp(datetime.now()) - start
+                        print(pk, f"TIMER: {round(end, 3)}", f"Actual consumption: {3600.0 / end}")
+                        start = datetime.timestamp(datetime.now())
+                        i = 1
+        except:
+            print("error")
+            sleep(1)
 
 
 @app.task
@@ -158,3 +162,66 @@ def read_bt_xiaomi():
     data = client.data
     print('Antresola: ', "A4:C1:38:2E:47:5A", '- Battery: ', str(data.battery))
     print('Temperature: ', str(data.temperature), '- Humidity: ', str(data.humidity))
+
+
+@app.task
+def read_plc_production():
+    start = datetime.timestamp(datetime.now())
+    i = 0
+    total = 0.234
+    while True:
+
+        try:
+            c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
+            modbus_input_map = c.read_discrete_inputs(1024, 255)
+
+            for pk, val in enumerate(modbus_input_map):
+                if val and pk == 78:
+                    i += 1
+                    sleep(0.3)
+                    if i >= 2:
+                        total += 0.0025
+                        end = datetime.timestamp(datetime.now()) - start
+                        print(
+                            pk, f"TIMER: {round(end, 3)}",
+                            f"Actual consumption: {round(3600.0 / end / 0.4, 3)}",
+                            f" Total consumed: {round(total, 3)}"
+                        )
+                        start = datetime.timestamp(datetime.now())
+                        i = 1
+        except:
+            print("error")
+            sleep(1)
+
+
+@app.task
+def read_sofar_production():
+    x = requests.get(os.getenv("SOFAR_WEBSERVER"), auth=HTTPBasicAuth(os.getenv("LOGIN"), os.getenv("PASS")))
+
+    html_text = x.text
+    soup = BeautifulSoup(html_text, 'html.parser')
+
+    raw_variables = soup.find_all('script')[1]
+    json_variables = json.dumps(raw_variables.text)
+    listed_variables = json.loads(json_variables)
+
+    lines = listed_variables.strip().split(';\r\n')
+
+    d = {}
+    for line in lines:
+        if 'function' not in line:
+            line = line.replace('var ', '')
+            line = line.replace(' = ', ':  ')
+            key, value = line.strip().split(':  ')
+            value = value.replace('"', '')
+            d[key.strip()] = value.strip()
+
+    webdata_total_e = float(d.get('webdata_total_e'))
+    webdata_now_p = float(d.get('webdata_now_p'))
+    webdata_today_e = float(d.get('webdata_today_e'))
+
+    print(
+        f"Current power: {webdata_now_p} W,"
+        f" - Today production: {webdata_today_e} kWh,"
+        f" - Total production: {webdata_total_e} kWh",
+    )

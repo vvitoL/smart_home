@@ -22,9 +22,11 @@ Installing Packages:
 
    `pip install lywsd03mmc`
 
- - Install pyModbusTCP, tinyTuya, w1thermsensor
+ - Install pyModbusTCP, tinyTuya, w1thermsensor, requests, beautifulsoup4
 
     `pip install pyModbusTCP tinyTuya w1thermsensor`
+
+    `pip install requests beautifulsoup4`
 
  - Celery and Docker
 
