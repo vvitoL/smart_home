@@ -4,9 +4,13 @@ from datetime import datetime
 import tinytuya
 from pyModbusTCP.client import ModbusClient
 from w1thermsensor import W1ThermSensor
+import requests
+from requests.auth import HTTPBasicAuth
+from bs4 import BeautifulSoup
 
 from celery import Celery
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 app = Celery('tasks', backend='rpc://', broker='pyamqp://guest@localhost//')
@@ -168,7 +172,7 @@ def read_plc_production():
     while True:
 
         try:
-            c = ModbusClient(host="192.168.69.9", auto_open=True, auto_close=True)
+            c = ModbusClient(host=os.getenv("PLC_IP"), auto_open=True, auto_close=True)
             modbus_input_map = c.read_discrete_inputs(1024, 255)
 
             for pk, val in enumerate(modbus_input_map):
@@ -178,10 +182,46 @@ def read_plc_production():
                     if i >= 2:
                         total += 0.0025
                         end = datetime.timestamp(datetime.now()) - start
-                        print(pk, f"TIMER: {round(end, 3)}",
-                              f"Actual comsumption: {round(3600.0 / end / 0.4, 3)} Total consumed: {round(total, 3)}")  # NOQA
+                        print(
+                            pk, f"TIMER: {round(end, 3)}",
+                            f"Actual comsumption: {round(3600.0 / end / 0.4, 3)}",
+                            f" Total consumed: {round(total, 3)}"
+                        )
                         start = datetime.timestamp(datetime.now())
                         i = 1
         except:
             print("error")
             sleep(1)
+
+
+@app.task
+def read_sofar_production():
+    x = requests.get(os.getenv("SOFAR_WEBSERVER"), auth=HTTPBasicAuth(os.getenv("LOGIN"), os.getenv("PASS")))
+
+    html_text = x.text
+    soup = BeautifulSoup(html_text, 'html.parser')
+
+    raw_variables = soup.find_all('script')[1]
+    json_variables = json.dumps(raw_variables.text)
+    listed_variables = json.loads(json_variables)
+
+    lines = listed_variables.strip().split(';\r\n')
+
+    d = {}
+    for line in lines:
+        if 'function' not in line:
+            line = line.replace('var ', '')
+            line = line.replace(' = ', ':  ')
+            key, value = line.strip().split(':  ')
+            value = value.replace('"', '')
+            d[key.strip()] = value.strip()
+
+    webdata_total_e = float(d.get('webdata_total_e'))
+    webdata_now_p = float(d.get('webdata_now_p'))
+    webdata_today_e = float(d.get('webdata_today_e'))
+
+    print(
+        f"Current power: {webdata_now_p} W,"
+        f" - Today production: {webdata_today_e} kWh,"
+        f" - Total production: {webdata_total_e} kWh",
+    )
