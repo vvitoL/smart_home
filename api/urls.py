@@ -16,7 +16,6 @@ router.register("sensors", views.SensorViewSet)
 router.register("history", views.SensorHistoryViewSet)
 router.register("owners", views.OwnerViewSet)
 
-# print('test')
 urlpatterns = [
     path('', include(router.urls)),
 ]

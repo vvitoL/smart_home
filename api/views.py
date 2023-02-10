@@ -77,7 +77,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         device = self.get_object()
         device.delete()
-        # return Response(status=status.HTTP_204_NO_CONTENT)
         return Response("Device deleted")
 
     @action(detail=True, methods=['GET'])
@@ -116,7 +115,6 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 d.turn_off(switch=20)
             else:
                 d.turn_on(switch=20)
-                # d.set_value(value=999, index=22)
 
             device.last_mod = datetime.datetime.now(tz=datetime.timezone.utc)
             device.amount_changes += 1
