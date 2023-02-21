@@ -50,7 +50,4 @@ Installing Packages:
  
    `python manage.py runserver 0:8000`
 
- - 
-
-    `celery -A tasks worker --loglevel=INFO
-`
+    `celery -A tasks worker --loglevel=INFO`
